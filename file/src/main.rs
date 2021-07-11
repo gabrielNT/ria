@@ -1,9 +1,14 @@
-#![allow(unused_variables)]
+#[derive(Debug, PartialEq)]
+enum FileState {
+    Open,
+    Closed,
+}
 
 #[derive(Debug)]
 struct File {
     name: String,
     data: Vec<u8>,
+    state: FileState,
 }
 
 impl File {
@@ -11,6 +16,7 @@ impl File {
         File {
             name: String::from(name),
             data: Vec::new(),
+            state: FileState::Closed,
         }
     }
 
@@ -20,31 +26,41 @@ impl File {
         f
     }
 
-    fn read(self: &File, save_to: &mut Vec<u8>) -> usize {
+    fn read(self: &File, save_to: &mut Vec<u8>) -> Result<usize, String> {
+        if self.state != FileState::Open {
+            return Err(String::from("File must be open for reading"));
+        }
+
         let mut tmp = self.data.clone();
         let read_length = tmp.len();
 
         save_to.reserve(read_length);
         save_to.append(&mut tmp);
-        read_length
+        Ok(read_length)
     }
 }
 
-fn open(f: &mut File) -> bool {
-    true
+fn open(mut f: File) -> Result<File, String> {
+    f.state = FileState::Open;
+    Ok(f)
 }
 
-fn close(f: &mut File) -> bool {
-    true
+fn close(mut f: File) -> Result<File, String> {
+    f.state = FileState::Closed;
+    Ok(f)
 }
 
 fn main() {
     let mut f1 = File::new_with_data("f1.txt", &vec![114, 117, 115, 116, 33]);
     let mut buffer: Vec<u8> = vec![];
 
-    open(&mut f1);
-    let f1_length = f1.read(&mut buffer);
-    close(&mut f1);
+    if f1.read(&mut &mut buffer).is_err() {
+        println!("Error checking is working");
+    }
+
+    f1 = open(f1).unwrap();
+    let f1_length = f1.read(&mut buffer).unwrap();
+    f1 = close(f1).unwrap();
 
     let text = String::from_utf8_lossy(&buffer);
     println!("{:?}", f1);
